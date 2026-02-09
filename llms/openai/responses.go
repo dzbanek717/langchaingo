@@ -120,6 +120,7 @@ func (o *LLM) GenerateContentWithResponsesAPI(ctx context.Context, messages []ll
 		Seed:                   opts.Seed,
 		MaxTokens:              opts.MaxTokens,
 		Metadata:               opts.Metadata,
+		Store:                  false,
 	}
 
 	// Add tools
@@ -195,8 +196,22 @@ func (o *LLM) GenerateContentWithResponsesAPI(ctx context.Context, messages []ll
 			},
 		}
 
-		// TODO: Handle tool calls if Responses API supports them in output messages
-		// For now, tool calls would need to be extracted from the output structure
+		// Handle tool calls from the output message
+		for _, tc := range outputMsg.ToolCalls {
+			choice.ToolCalls = append(choice.ToolCalls, llms.ToolCall{
+				ID:   tc.ID,
+				Type: string(tc.Type),
+				FunctionCall: &llms.FunctionCall{
+					Name:      tc.Function.Name,
+					Arguments: tc.Function.Arguments,
+				},
+			})
+		}
+
+		// Populate legacy single-function call field for backwards compatibility
+		if len(choice.ToolCalls) > 0 {
+			choice.FuncCall = choice.ToolCalls[0].FunctionCall
+		}
 
 		choices = append(choices, choice)
 	}

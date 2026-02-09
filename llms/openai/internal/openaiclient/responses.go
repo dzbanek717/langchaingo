@@ -19,44 +19,47 @@ import (
 //
 // Reference: https://platform.openai.com/docs/api-reference/responses
 type ResponseRequest struct {
-	Model       string                `json:"model"`
-	Input       []*ResponseMessage    `json:"input"` // Uses "input" instead of "messages"
-	Temperature float64               `json:"temperature,omitempty"`
-	TopP        float64               `json:"top_p,omitempty"`
-	MaxTokens   int                   `json:"max_tokens,omitempty"`
-	N           int                   `json:"n,omitempty"`
-	StopWords   []string              `json:"stop,omitempty"`
-	Stream      bool                  `json:"stream,omitempty"`
-	Seed        int                   `json:"seed,omitempty"`
-	Tools       []Tool                `json:"tools,omitempty"`
-	ToolChoice  any                   `json:"tool_choice,omitempty"`
-	Metadata    map[string]any        `json:"metadata,omitempty"`
+	Model       string             `json:"model"`
+	Input       []*ResponseMessage `json:"input"` // Uses "input" instead of "messages"
+	Temperature float64            `json:"temperature,omitempty"`
+	TopP        float64            `json:"top_p,omitempty"`
+	MaxTokens   int                `json:"max_tokens,omitempty"`
+	N           int                `json:"n,omitempty"`
+	StopWords   []string           `json:"stop,omitempty"`
+	Stream      bool               `json:"stream,omitempty"`
+	Seed        int                `json:"seed,omitempty"`
+	Tools       []Tool             `json:"tools,omitempty"`
+	ToolChoice  any                `json:"tool_choice,omitempty"`
+	Metadata    map[string]any     `json:"metadata,omitempty"`
+
+	// Store controls whether the response is stored by OpenAI.
+	Store bool `json:"store,omitempty"`
 
 	// Streaming functions (not sent to API)
-	StreamingFunc          func(ctx context.Context, chunk []byte) error          `json:"-"`
+	StreamingFunc          func(ctx context.Context, chunk []byte) error                 `json:"-"`
 	StreamingReasoningFunc func(ctx context.Context, reasoningChunk, chunk []byte) error `json:"-"`
 }
 
 // ResponseMessage represents a message in the Responses API.
 // Content can contain input_text and input_file parts.
 type ResponseMessage struct {
-	Role         string               `json:"role"`
-	Content      []ResponseContent    `json:"content,omitempty"`
+	Role    string            `json:"role"`
+	Content []ResponseContent `json:"content,omitempty"`
 
 	// For assistant messages with tool calls
-	ToolCalls    []ToolCall           `json:"tool_calls,omitempty"`
+	ToolCalls []ToolCall `json:"tool_calls,omitempty"`
 
 	// For tool response messages
-	ToolCallID   string               `json:"tool_call_id,omitempty"`
+	ToolCallID string `json:"tool_call_id,omitempty"`
 }
 
 // ResponseContent represents content in a ResponseMessage.
 // Can be input_text, input_file, or input_image type.
 type ResponseContent struct {
-	Type    string `json:"type"` // "input_text", "input_file", or "input_image"
+	Type string `json:"type"` // "input_text", "input_file", or "input_image"
 
 	// For input_text
-	Text    string `json:"text,omitempty"`
+	Text string `json:"text,omitempty"`
 
 	// For input_file (documents: PDF, TXT, DOCX)
 	FileURL string `json:"file_url,omitempty"` // External URL (including presigned URLs)
@@ -70,26 +73,27 @@ type ResponseContent struct {
 // ResponseCompletionResponse is the response from the Responses API.
 // The Responses API uses "output" instead of "choices" and has a different structure.
 type ResponseCompletionResponse struct {
-	ID         string                   `json:"id,omitempty"`
-	Object     string                   `json:"object,omitempty"`
-	CreatedAt  int64                    `json:"created_at,omitempty"`
-	Status     string                   `json:"status,omitempty"`
-	Model      string                   `json:"model,omitempty"`
-	Output     []*ResponseOutputMessage `json:"output,omitempty"`
-	Usage      ChatUsage                `json:"usage,omitempty"`
+	ID        string                   `json:"id,omitempty"`
+	Object    string                   `json:"object,omitempty"`
+	CreatedAt int64                    `json:"created_at,omitempty"`
+	Status    string                   `json:"status,omitempty"`
+	Model     string                   `json:"model,omitempty"`
+	Output    []*ResponseOutputMessage `json:"output,omitempty"`
+	Usage     ChatUsage                `json:"usage,omitempty"`
 
 	// Legacy fields for backward compatibility (not used in Responses API)
-	Choices           []*ResponseCompletionChoice   `json:"choices,omitempty"`
-	SystemFingerprint string                        `json:"system_fingerprint,omitempty"`
+	Choices           []*ResponseCompletionChoice `json:"choices,omitempty"`
+	SystemFingerprint string                      `json:"system_fingerprint,omitempty"`
 }
 
 // ResponseOutputMessage represents a message in the output array.
 type ResponseOutputMessage struct {
-	ID      string            `json:"id,omitempty"`
-	Type    string            `json:"type"`    // "message"
-	Status  string            `json:"status,omitempty"`
-	Role    string            `json:"role"`    // "assistant"
-	Content []ResponseContent `json:"content"`
+	ID        string            `json:"id,omitempty"`
+	Type      string            `json:"type"` // "message"
+	Status    string            `json:"status,omitempty"`
+	Role      string            `json:"role"` // "assistant"
+	Content   []ResponseContent `json:"content"`
+	ToolCalls []ToolCall        `json:"tool_calls,omitempty"` // Tool calls requested by the model
 }
 
 // ResponseCompletionChoice represents a choice in the response (legacy).
@@ -108,10 +112,10 @@ type StreamedResponsePayload struct {
 	Choices []struct {
 		Index float64 `json:"index,omitempty"`
 		Delta struct {
-			Role         string        `json:"role,omitempty"`
-			Content      string        `json:"content,omitempty"`
-			ToolCalls    []*ToolCall   `json:"tool_calls,omitempty"`
-			ReasoningContent string    `json:"reasoning_content,omitempty"`
+			Role             string      `json:"role,omitempty"`
+			Content          string      `json:"content,omitempty"`
+			ToolCalls        []*ToolCall `json:"tool_calls,omitempty"`
+			ReasoningContent string      `json:"reasoning_content,omitempty"`
 		} `json:"delta,omitempty"`
 		FinishReason FinishReason `json:"finish_reason,omitempty"`
 	} `json:"choices,omitempty"`
