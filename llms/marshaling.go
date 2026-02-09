@@ -39,7 +39,9 @@ func (mc *MessageContent) UnmarshalJSON(data []byte) error {
 				URL    string `json:"url"`
 				Detail string `json:"detail,omitempty"`
 			} `json:"image_url,omitempty"`
-			Binary struct {
+			InputFileURL string `json:"file_url,omitempty"` // For input_file type
+			InputFileID  string `json:"file_id,omitempty"`  // For input_file type
+			Binary       struct {
 				Data     string `json:"data"`
 				MIMEType string `json:"mime_type"`
 			} `json:"binary,omitempty"`
@@ -69,6 +71,12 @@ func (mc *MessageContent) UnmarshalJSON(data []byte) error {
 			mc.Parts = append(mc.Parts, ImageURLContent{
 				URL:    part.ImageURL.URL,
 				Detail: part.ImageURL.Detail,
+			})
+		case "input_file":
+			// Responses API input_file type
+			mc.Parts = append(mc.Parts, InputFileContent{
+				FileURL: part.InputFileURL,
+				FileID:  part.InputFileID,
 			})
 		case "binary":
 			decoded, err := base64.StdEncoding.DecodeString(part.Binary.Data)
@@ -157,6 +165,40 @@ func (iuc *ImageURLContent) UnmarshalJSON(data []byte) error {
 		iuc.Detail = detail
 	}
 	iuc.URL = url
+	return nil
+}
+
+func (ifc InputFileContent) MarshalJSON() ([]byte, error) {
+	m := map[string]any{
+		"type": "input_file",
+	}
+	if ifc.FileURL != "" {
+		m["file_url"] = ifc.FileURL
+	}
+	if ifc.FileID != "" {
+		m["file_id"] = ifc.FileID
+	}
+	return json.Marshal(m)
+}
+
+func (ifc *InputFileContent) UnmarshalJSON(data []byte) error {
+	var m map[string]any
+	if err := json.Unmarshal(data, &m); err != nil {
+		return err
+	}
+	typ, ok := m["type"].(string)
+	if !ok || typ != "input_file" {
+		return fmt.Errorf(`invalid or missing "type" field in InputFileContent, expected "input_file"`)
+	}
+	if fileURL, ok := m["file_url"].(string); ok {
+		ifc.FileURL = fileURL
+	}
+	if fileID, ok := m["file_id"].(string); ok {
+		ifc.FileID = fileID
+	}
+	if ifc.FileURL == "" && ifc.FileID == "" {
+		return fmt.Errorf("InputFileContent must have either file_url or file_id")
+	}
 	return nil
 }
 

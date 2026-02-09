@@ -73,6 +73,45 @@ func (iuc ImageURLContent) String() string {
 
 func (ImageURLContent) isPart() {}
 
+// InputFileContent is content for OpenAI's Responses API (/v1/responses) that references
+// a file via URL or file ID. This supports the modern input_file content type which can
+// handle PDFs, text files, and other document formats.
+//
+// Use this type when working with the /v1/responses endpoint to send documents via:
+// - file_url: External URLs (including presigned URLs from S3, GCS, etc.)
+// - file_id: Files uploaded to OpenAI's /v1/files endpoint with purpose="user_data"
+// - file_data: Base64-encoded file data (not yet implemented)
+type InputFileContent struct {
+	FileURL string `json:"file_url,omitempty"` // URL to the file (e.g., presigned S3 URL)
+	FileID  string `json:"file_id,omitempty"`  // OpenAI file ID from /v1/files upload
+}
+
+func (ifc InputFileContent) String() string {
+	if ifc.FileURL != "" {
+		return ifc.FileURL
+	}
+	return ifc.FileID
+}
+
+func (InputFileContent) isPart() {}
+
+// InputFilePart creates a new InputFileContent from a file URL.
+// This is the recommended way to reference external files (PDFs, text files, etc.)
+// when using OpenAI's Responses API.
+func InputFilePart(fileURL string) InputFileContent {
+	return InputFileContent{
+		FileURL: fileURL,
+	}
+}
+
+// InputFileIDPart creates a new InputFileContent from an OpenAI file ID.
+// Use this after uploading a file to /v1/files with purpose="user_data".
+func InputFileIDPart(fileID string) InputFileContent {
+	return InputFileContent{
+		FileID: fileID,
+	}
+}
+
 // BinaryContent is content holding some binary data with a MIME type.
 type BinaryContent struct {
 	MIMEType string
@@ -173,6 +212,12 @@ func ShowMessageContents(w io.Writer, msgs []MessageContent) {
 				fmt.Fprintf(w, "TextContent %q\n", pp.Text)
 			case ImageURLContent:
 				fmt.Fprintf(w, "ImageURLPart %q\n", pp.URL)
+			case InputFileContent:
+				if pp.FileURL != "" {
+					fmt.Fprintf(w, "InputFilePart (URL) %q\n", pp.FileURL)
+				} else {
+					fmt.Fprintf(w, "InputFilePart (ID) %q\n", pp.FileID)
+				}
 			case BinaryContent:
 				fmt.Fprintf(w, "BinaryContent MIME=%q, size=%d\n", pp.MIMEType, len(pp.Data))
 			case ToolCall:

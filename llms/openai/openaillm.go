@@ -450,6 +450,10 @@ func ExtractToolParts(msg *ChatMessage) ([]llms.ContentPart, []llms.ToolCall) {
 			content = append(content, p)
 		case llms.ImageURLContent:
 			content = append(content, p)
+		case llms.InputFileContent:
+			// InputFileContent is only supported in Responses API (/v1/responses)
+			// Chat Completions API (/v1/chat/completions) does not support input_file content type
+			// Skip this content part - don't add it to content slice
 		case llms.BinaryContent:
 			content = append(content, p)
 		case llms.ToolCall:
