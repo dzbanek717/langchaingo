@@ -56,8 +56,14 @@ func (e *Executor) Call(ctx context.Context, inputValues map[string]any, options
 
 	steps := make([]schema.AgentStep, 0)
 	for i := 0; i < e.MaxIterations; i++ {
+		callOpts := []chains.ChainCallOption{
+			chains.WithIterationCounters(i, e.MaxIterations),
+		}
+
+		callOpts = append(callOpts, options...)
+
 		var finish map[string]any
-		steps, finish, err = e.doIteration(ctx, steps, nameToTool, inputs, options...)
+		steps, finish, err = e.doIteration(ctx, steps, nameToTool, inputs, callOpts...)
 		if finish != nil || err != nil {
 			return finish, err
 		}
