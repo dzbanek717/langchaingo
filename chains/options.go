@@ -63,6 +63,10 @@ type chainCallOption struct {
 	RepetitionPenalty    float64
 	repetitionPenaltySet bool
 
+	currentIteration               int
+	maxIterations                  int
+	respectfullyDeclineLimitExceed bool
+
 	// CallbackHandler is the callback handler for Chain
 	CallbackHandler callbacks.Handler
 }
@@ -154,10 +158,46 @@ func WithStopWords(stopWords []string) ChainCallOption {
 	}
 }
 
+func WithIterationCounters(current, max int) ChainCallOption {
+	return func(o *chainCallOption) {
+		o.currentIteration = current
+		o.maxIterations = max
+	}
+}
+
+func WithRespectfullyDeclineLimitExceed(limitExceed bool) ChainCallOption {
+	return func(o *chainCallOption) {
+		o.respectfullyDeclineLimitExceed = limitExceed
+	}
+}
+
 // WithCallback allows setting a custom Callback Handler.
 func WithCallback(callbackHandler callbacks.Handler) ChainCallOption {
 	return func(o *chainCallOption) {
 		o.CallbackHandler = callbackHandler
+	}
+}
+
+type ExecutorOpts struct {
+	Iterations                     int
+	MaxIterations                  int
+	RespectFullyDeclineLimitExceed bool
+}
+
+func (e *ExecutorOpts) IsTimeToFinish() bool {
+	return e.RespectFullyDeclineLimitExceed && e.Iterations != 0 && e.MaxIterations != 0 && e.Iterations >= e.MaxIterations
+}
+
+func GetExecutorOpts(options ...ChainCallOption) *ExecutorOpts {
+	chainOpts := new(chainCallOption)
+	for _, option := range options {
+		option(chainOpts)
+	}
+
+	return &ExecutorOpts{
+		Iterations:                     chainOpts.currentIteration,
+		MaxIterations:                  chainOpts.maxIterations,
+		RespectFullyDeclineLimitExceed: chainOpts.respectfullyDeclineLimitExceed,
 	}
 }
 

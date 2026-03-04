@@ -78,6 +78,7 @@ func (o *OpenAIFunctionsAgent) Plan(
 	for key, value := range inputs {
 		fullInputs[key] = value
 	}
+
 	fullInputs[agentScratchpad] = o.constructScratchPad(intermediateSteps)
 
 	var stream func(ctx context.Context, chunk []byte) error
@@ -149,8 +150,15 @@ func (o *OpenAIFunctionsAgent) Plan(
 		mcList[i] = mc
 	}
 
+	executorOpts := chains.GetExecutorOpts(options...)
+	var llmOptions []llms.CallOption
+	if executorOpts.IsTimeToFinish() {
+		llmOptions = append(llmOptions, llms.WithStreamingFunc(stream))
+	} else {
+		llmOptions = append(llmOptions, llms.WithFunctions(o.functions()), llms.WithStreamingFunc(stream))
+	}
+
 	// Build LLM call options, including user-provided options
-	llmOptions := []llms.CallOption{llms.WithFunctions(o.functions()), llms.WithStreamingFunc(stream)}
 	llmOptions = append(llmOptions, chains.GetLLMCallOptions(options...)...)
 
 	result, err := o.LLM.GenerateContent(ctx, mcList, llmOptions...)
