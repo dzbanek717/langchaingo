@@ -185,7 +185,7 @@ type ExecutorOpts struct {
 }
 
 func (e *ExecutorOpts) IsTimeToFinish() bool {
-	return e.RespectFullyDeclineLimitExceed && e.Iterations != 0 && e.MaxIterations != 0 && e.Iterations >= e.MaxIterations
+	return e.RespectFullyDeclineLimitExceed && e.Iterations != 0 && e.MaxIterations != 0 && e.Iterations >= e.MaxIterations-1
 }
 
 func GetExecutorOpts(options ...ChainCallOption) *ExecutorOpts {
